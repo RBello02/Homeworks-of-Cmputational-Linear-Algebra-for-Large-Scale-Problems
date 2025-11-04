@@ -2,7 +2,9 @@ import numpy as np
 import warnings
 
 def l1_norm(x):
+    x = np.real(np.ravel(x))
     return np.sum(np.abs(x))
+    #return np.linalg.norm(x,1)
 
 def PWM(M, x_0 ,k=1000, tol = 10**-8,real_x = None):
 
@@ -59,7 +61,10 @@ def PWM(M, x_0 ,k=1000, tol = 10**-8,real_x = None):
     x = x_0.copy()
 
     if real_x is not None:    # normalization of the eigenvector
+        real_x = np.real(real_x)
         real_x = real_x/l1_norm(real_x)
+        real_x = real_x.copy().reshape(-1,1)
+        #print(real_x)
 
     for p in range(k):
         y = M@x
@@ -68,9 +73,20 @@ def PWM(M, x_0 ,k=1000, tol = 10**-8,real_x = None):
             raise ValueError ("obtained an null eigenvector")
         y = y/normalization   # computing the new approximation
         y = y.reshape(-1,1)  # column vector
+        if real_x is not None and np.dot(y.ravel(), real_x.ravel()) < tol:
+            y = -y
         if real_x is not None:
-            x_seq[p] = l1_norm(y-real_x)
-            ratio = x_seq[p]/l1_norm(x-real_x)
+            diff_y = y.reshape(-1,1)-real_x.reshape(-1,1)
+            diff_x = x.reshape(-1,1)-real_x.reshape(-1,1)
+            '''
+            if p == 49:
+                print(np.linalg.norm(diff_y, 1))
+                print(np.sum(np.abs(diff_y)))
+                print(np.sum(np.abs(diff_y.ravel())))
+                print(np.sum(np.abs(np.real(diff_y))))
+                '''
+            x_seq[p] = l1_norm(diff_y.reshape(-1,1))
+            ratio = x_seq[p]/l1_norm(diff_x.reshape(-1,1))
         x = y   # adjusting x
 
 
@@ -78,7 +94,7 @@ def PWM(M, x_0 ,k=1000, tol = 10**-8,real_x = None):
 
     z = M@x
     for k in range(len(x)):
-        if x[k] > tol:
+        if abs(x[k]) > tol:
             lam = float((z[k]/x[k]).item())
             break
 
@@ -111,7 +127,8 @@ def main_test():
     v2 = v_dom / l1_norm(v_dom)
     if np.sign(v1[0]) != np.sign(v2[0]):
         v2 = -v2 
-    diff_l1 = l1_norm(v1 - v2)
+    diff = v1.reshape(-1,1)-v2.reshape(-1,1)
+    diff_l1 = l1_norm(diff)
     print("the difference in norm l1: " , diff_l1)
     print("\n")
     print("the c value: ", c)
@@ -135,7 +152,8 @@ def main_test():
     v2 = v_dom / l1_norm(v_dom)
     if np.sign(v1[0]) != np.sign(v2[0]):
         v2 = -v2 
-    diff_l1 = l1_norm(v1 - v2)   
+    diff = v1.reshape(-1,1)-v2.reshape(-1,1)
+    diff_l1 = l1_norm(diff)   
     print("the difference in norm l1: " , diff_l1)
     print("\n")
     print("the c value: ", c)
@@ -144,6 +162,26 @@ def main_test():
     print("\n")
     print("the ratio: ", ratio)
 
+    print("\n")
+    print("******** Test 3 *********")
+    print("\n")
+    A = np.array([[0,0,1/2,1/2,0],
+              [1/3,0,0,0,0],
+              [1/3,1/2,0,1/2,1],
+              [1/3,1/2,0,0,0],
+              [0,0,1/2,0,0]])
+    m = 0.15
+    n = 5
+    S = 1/n*np.ones((n,n))
+    M = (1-m)*A+m*S
+    values,vectors = np.linalg.eig(M)
+    idx = np.argsort(values)[::-1]
+    values = values[idx]
+    vectors = vectors[:, idx]
+    score = vectors[:,0]/sum(vectors[:,0])
+
+    x_50,lam_50,c,x_seq_50,ratio_50 = PWM(M=M,x_0=np.ones((M.shape[0],1)),k=50,tol=10**-8,real_x=score)
+    print(x_seq)
 
 if __name__ == "__main__":
     main_test()
