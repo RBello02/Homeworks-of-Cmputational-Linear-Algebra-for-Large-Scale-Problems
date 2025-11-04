@@ -6,38 +6,34 @@ from IPython.display import display
 class Eig:
     def __init__(self,A):
         self.A = A
-        self.eigenvalues,self.eigenvectors = np.linalg.eig(self.A)
+        self.values,self.vectors = np.linalg.eig(self.A)
 
-        idx = np.argsort(self.eigenvalues)[::-1]
-        self.eigenvalues = self.eigenvalues[idx]
-        self.eigenvectors = self.eigenvectors[:, idx]
+        idx = np.argsort(self.values)[::-1]
+        self.values = self.values[idx]
+        self.vectors = self.vectors[:, idx]
 
 
 
  
     def _fmt(self, z):
-        """Restituisce una stringa pulita con 2 cifre significative"""
         if abs(z.imag) < 1e-10:
             return f"{z.real:.2g}"
         else:
             return f"{z.real:.2g}+{z.imag:.2g}j"
 
     def to_dataframe(self):
-        """Restituisce un DataFrame Pandas ben formattato"""
-        # Prepara le intestazioni con autovalori e nomi colonna allineati
-        headers = [f"v{i+1}\n(λ={self._fmt(val)})" for i, val in enumerate(self.eigenvalues)]
+        headers = [f"v{i+1}\n(λ={self._fmt(val)})" for i, val in enumerate(self.values)]
         
-        fmt_vectors = np.vectorize(self._fmt)(self.eigenvectors)
+        fmt_vectors = np.vectorize(self._fmt)(self.vectors)
         df = pd.DataFrame(fmt_vectors, columns=headers,
-                          index=[f"x{i+1}" for i in range(self.eigenvectors.shape[0])])
+                          index=[f"x{i+1}" for i in range(self.vectors.shape[0])])
         return df
 
     def show(self):
-        """Mostra il risultato nel notebook"""
-        print("Eigenvalues (sorted descending):")
-        for i, val in enumerate(self.eigenvalues):
+        print("values (sorted descending):")
+        for i, val in enumerate(self.values):
             print(f"  λ{i+1} = {self._fmt(val)}")
-        print("\nEigenvectors (columns):")
+        print("\nvectors (columns):")
         display(self.to_dataframe().style.set_table_styles(
             [{'selector': 'th', 'props': [('text-align', 'center')]}]
         ).set_properties(**{'text-align': 'center'}))
