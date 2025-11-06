@@ -2,6 +2,7 @@ import numpy as np
 import warnings
 from scipy.sparse import issparse
 from scipy.sparse import csr_matrix
+from scipy.sparse import csc_matrix
 
 def l1_norm(x):
     x = np.real(np.ravel(x))
@@ -105,7 +106,7 @@ def PWM(M, x_0 ,k=1000, tol = 10**-8,real_x = None):
 
     return x,lam,c,x_seq,ratio
 
-def Opt_PWM(A,m,x_0,k):
+def Opt_PWM(A,m,x_0,k=1000, tol = 10**-8):
 
     # checks over m
     if not (m>=0 and m <=1):
@@ -121,6 +122,24 @@ def Opt_PWM(A,m,x_0,k):
 
     # computation of the factor c
 
+    # computing M in a sparse way
+
+    M = A.copy().tocsc()    
+    M = M*(1-m)
+    M.data += m/n     # do that only on the numbers not zero. Use this to preserve the sparsity (changes the computation of c)
+
+    # computing the factor c
+    c=0
+    s = np.array(M.sum(axis = 0)).flatten()   # array that contains the sums over the columns
+    for j,el in enumerate(s):   # cycle over s
+        if abs(el-1)<tol: # it means that all the elements sums to 1 so the other are 0, so is not positive , so we must search the min over M
+            col = M.getcol(j)
+            M_ij_min_i = col.data.min()
+        else:
+            M_ij_min_i = m/n
+        val = abs(1-2*M_ij_min_i)
+        if val > c:   # save the max
+            c = val
 
 
     x_0 = x_0.copy().reshape(-1,1)   # column vectors
@@ -134,7 +153,7 @@ def Opt_PWM(A,m,x_0,k):
         x = y.reshape(-1,1)
         x = x / np.sum(np.abs(x))
 
-    return x
+    return x,c
 
 def main_test():
 
@@ -214,16 +233,18 @@ def main_test():
     score = vectors[:,0]/sum(vectors[:,0])
 
     x_50,lam_50,c,x_seq_50,ratio_50 = PWM(M=M,x_0=np.ones((M.shape[0],1)),k=50,tol=10**-8,real_x=score)
-    print(x_seq)
+    print(x_seq[49])
+    print("\n")
+    print("factor c: ", c)
 
     print("\n")
-    print("******** Test 1 OPTIMIZE*********")
+    print("******** Test 1 OPTIMIZED *********")
     print("\n")
-    A = np.array([[0,0,1/2,1/2,0],
-              [1/3,0,0,0,0],
-              [1/3,1/2,0,1/2,1],
-              [1/3,1/2,0,0,0],
-              [0,0,1/2,0,0]])
+    A = np.array([[  0,   0, 1/2, 1/2,  0],
+                  [1/3,   0,   0,   0,  0],
+                  [1/3, 1/2,   0, 1/2,  1],
+                  [1/3, 1/2,   0,   0,  0],
+                  [  0,   0, 1/2,   0,  0]])
     A_sparse = csr_matrix(A)
     m = 0.15
     n = 5
@@ -235,8 +256,24 @@ def main_test():
     vectors = vectors[:, idx]
     score = vectors[:,0]/sum(vectors[:,0])
 
-    x= Opt_PWM(A_sparse,m,np.ones((n,1)), 1000)
+    x,c= Opt_PWM(A_sparse,m,np.ones((n,1)), 50)
     print(l1_norm(x.reshape(-1,1)-score.reshape(-1,1)))
+    print("\n the factor c:", c)
+
+    print("\n")
+    print("******** Test 2 OPTIMIZED *********")
+    print("\n")
+    A = np.array([
+                  [1/3,   0,   0],
+                  [1/3,   0,   1],
+                  [1/3,   1,   0]
+                  ])
+
+    m = 0.3
+    A_sparse = csr_matrix(A)
+    x,c= Opt_PWM(A_sparse,m,np.ones((3,1)), 50)
+    print(c)
+
 
 if __name__ == "__main__":
     main_test()
