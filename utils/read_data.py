@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.sparse import lil_matrix, csr_matrix
 
 def read_pages(file_path):       
 
@@ -16,7 +17,6 @@ def read_pages(file_path):
     while i < len(lines) and lines[i].strip():
         parts = lines[i].strip().split(maxsplit=1)
         # at the end of the file there is only numbers, so it will be skipped
-        print(parts)
         saveit = True
         if parts[1].isdigit():
             saveit = False
@@ -32,14 +32,17 @@ def read_pages(file_path):
     edge_lines = lines[i:]
     edges = [tuple(map(int, line.split())) for line in edge_lines if line.strip()]
 
-    A = np.zeros((n_nodes, n_nodes), dtype=int)
+    A = lil_matrix((n_nodes, n_nodes), dtype=float)    # sparse mode
     for src, dst in edges:
-        A[src - 1, dst - 1] = 1   # -1 because the vector in python starts from 0 but the indices starts from 1
+        A[src - 1, dst - 1] = 1.0   # -1 because the vector in python starts from 0 but the indices starts from 1
 
     # normalization of the link matrix
 
-    row_sums = A.sum(axis=1)
-    row_sums[row_sums == 0] = 1  # is possible that the sum == 0 so in that case we put the sum equal to 1 (to avoid dividing by 0)
-    A = A / row_sums.reshape(-1,1)
+    row_sums = np.array(A.sum(axis=1)).flatten()
+    row_sums[row_sums == 0] = 1.0  # dont devide by zero
 
+    D_inv = csr_matrix(np.diag(1 / row_sums))
+
+    A = D_inv @ A.tocsr()
+    
     return A,id_to_url,edges
