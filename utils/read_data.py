@@ -16,9 +16,13 @@ def read_pages(file_path):
     while i < len(lines) and lines[i].strip():
         parts = lines[i].strip().split(maxsplit=1)
         # at the end of the file there is only numbers, so it will be skipped
-        if len(parts) == 1:
+        print(parts)
+        saveit = True
+        if parts[1].isdigit():
+            saveit = False
             break
-        node_lines.append(parts)
+        if saveit:
+            node_lines.append(parts)
         i += 1
 
     id_to_url = {int(id_): url for id_, url in node_lines}
