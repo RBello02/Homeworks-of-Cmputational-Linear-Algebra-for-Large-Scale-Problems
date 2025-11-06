@@ -1,5 +1,7 @@
 import numpy as np
 import warnings
+from scipy.sparse import issparse
+from scipy.sparse import csr_matrix
 
 def l1_norm(x):
     x = np.real(np.ravel(x))
@@ -103,6 +105,37 @@ def PWM(M, x_0 ,k=1000, tol = 10**-8,real_x = None):
 
     return x,lam,c,x_seq,ratio
 
+def Opt_PWM(A,m,x_0,k):
+
+    # checks over m
+    if not (m>=0 and m <=1):
+        raise ValueError ("m is not between 0 and 1")
+
+    # checks over A
+    if not issparse(A):
+        raise ValueError("The matrix is not in sparse format, use PWM")
+    if A.shape[0] != A.shape[1]:
+        raise ValueError ("The matrix is not squared")
+    
+    n = A.shape[0]
+
+    # computation of the factor c
+
+
+
+    x_0 = x_0.copy().reshape(-1,1)   # column vectors
+    x = x_0.copy()
+    x = x / np.sum(np.abs(x))
+
+    one_vec = (np.ones(n)/n).reshape(-1,1)
+
+    for p in range(k):
+        y = (1-m)*A@x + m*one_vec
+        x = y.reshape(-1,1)
+        x = x / np.sum(np.abs(x))
+
+    return x
+
 def main_test():
 
     print("\n")
@@ -182,6 +215,28 @@ def main_test():
 
     x_50,lam_50,c,x_seq_50,ratio_50 = PWM(M=M,x_0=np.ones((M.shape[0],1)),k=50,tol=10**-8,real_x=score)
     print(x_seq)
+
+    print("\n")
+    print("******** Test 1 OPTIMIZE*********")
+    print("\n")
+    A = np.array([[0,0,1/2,1/2,0],
+              [1/3,0,0,0,0],
+              [1/3,1/2,0,1/2,1],
+              [1/3,1/2,0,0,0],
+              [0,0,1/2,0,0]])
+    A_sparse = csr_matrix(A)
+    m = 0.15
+    n = 5
+    S = 1/n*np.ones((n,n))
+    M = (1-m)*A_sparse+m*S
+    values,vectors = np.linalg.eig(M)
+    idx = np.argsort(values)[::-1]
+    values = values[idx]
+    vectors = vectors[:, idx]
+    score = vectors[:,0]/sum(vectors[:,0])
+
+    x= Opt_PWM(A_sparse,m,np.ones((n,1)), 1000)
+    print(l1_norm(x.reshape(-1,1)-score.reshape(-1,1)))
 
 if __name__ == "__main__":
     main_test()
