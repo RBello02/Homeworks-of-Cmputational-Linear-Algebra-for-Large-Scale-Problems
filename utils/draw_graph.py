@@ -5,7 +5,7 @@ import tempfile
 from IPython.display import Image, display
 import matplotlib.pyplot as plt
 
-def draw_graph(A, sample_size=1500, seed=None, values=None, cmap='viridis', vertex_size=6, fig_size=(10, 10), colorbar_size=(6, 0.6)):
+def draw_graph(A, sample_size=1500, seed=None, values=None, cmap='viridis', vertex_size=6, fig_size=(10, 10), colorbar_size=(6, 0.6), lay = "fr"):
 
     # set the seed
     if seed is not None:
@@ -30,7 +30,7 @@ def draw_graph(A, sample_size=1500, seed=None, values=None, cmap='viridis', vert
     g.add_vertices(len(sampled_nodes))
     g.add_edges(edges)
 
-    layout = g.layout("fr")
+    layout = g.layout(lay)
 
     # --- colors --
     if values is not None:
