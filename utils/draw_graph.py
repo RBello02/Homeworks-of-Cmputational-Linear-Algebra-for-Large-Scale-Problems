@@ -6,7 +6,7 @@ import tempfile
 from IPython.display import Image, display
 import matplotlib.pyplot as plt
 
-def draw_graph(A, sample_size=1500, sampled_nodes = None, seed=None, values=None, cmap='viridis', vertex_size=6, fig_size=(10, 10), colorbar_size=(6, 0.6), lay = "fr",  layout_coords=None):
+def draw_graph(A, sample_size=1500, sampled_nodes = None, seed=None, values=None, cmap='viridis', vertex_size=6, fig_size=(10, 10), colorbar_size=(6, 0.6), lay = "fr",  layout_coords=None, name = None):
 
     # set the seed
     if seed is not None:
@@ -79,6 +79,8 @@ def draw_graph(A, sample_size=1500, sampled_nodes = None, seed=None, values=None
         cb.set_label('Scores of the nodes')
         cb.ax.tick_params(labelsize=8)  
         cb.ax.xaxis.set_ticks_position('bottom')
+        if name is not None:
+            plt.savefig(name, format="png", dpi=300, bbox_inches="tight", pad_inches=0.3)
         plt.show()
 
     return sampled_nodes, np.array(layout.coords)
