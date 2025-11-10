@@ -55,32 +55,46 @@ def draw_graph(A, sample_size=1500, sampled_nodes = None, seed=None, values=None
         g.vs["color"] = "skyblue"
 
     # --- draw --
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmpfile:
+    if name is not None:
+        output_name = f"{name}.png"
         visual_style = {
             "layout": layout,
             "vertex_size": vertex_size,
             "edge_arrow_size": 0.2,
-            "bbox": (fig_size[0] * 100, fig_size[1] * 100),  
+            "bbox": (fig_size[0] * 100, fig_size[1] * 100),
             "margin": 30,
-            "target": tmpfile.name,
+            "target": output_name,
         }
         ig.plot(g, **visual_style)
-        display(Image(filename=tmpfile.name))
+        print(f"Graph saved as: {output_name}")
+        display(Image(filename=output_name))
+    else:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmpfile:
+            visual_style = {
+                "layout": layout,
+                "vertex_size": vertex_size,
+                "edge_arrow_size": 0.2,
+                "bbox": (fig_size[0] * 100, fig_size[1] * 100),  
+                "margin": 30,
+                "target": tmpfile.name,
+            }
+            ig.plot(g, **visual_style)
+            display(Image(filename=tmpfile.name))
 
     # --- colorbar ---
     if values is not None:
         fig, ax = plt.subplots(figsize=colorbar_size)
-        fig.subplots_adjust(bottom=0.5)
+        fig.subplots_adjust(bottom=0.35)  
         cb = plt.colorbar(
             plt.cm.ScalarMappable(norm=norm, cmap=cmap_),
             cax=ax,
             orientation='horizontal'
         )
         cb.set_label('Scores of the nodes')
-        cb.ax.tick_params(labelsize=8)  
+        cb.ax.tick_params(labelsize=8, rotation=45)
         cb.ax.xaxis.set_ticks_position('bottom')
-        if name is not None:
-            plt.savefig(name, format="png", dpi=300, bbox_inches="tight", pad_inches=0.3)
+        cb.locator = plt.MaxNLocator(nbins=6)  
+        cb.update_ticks()
         plt.show()
 
     return sampled_nodes, np.array(layout.coords)
