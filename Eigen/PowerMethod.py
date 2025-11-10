@@ -147,13 +147,20 @@ def Opt_PWM(A,m,x_0,k=1000, tol = 10**-8):
     x = x / np.sum(np.abs(x))
 
     one_vec = (np.ones(n)/n).reshape(-1,1)
+    difference_in_norm_l1 = []
 
     for p in range(k):
         y = (1-m)*A@x + m*one_vec
-        x = y.reshape(-1,1)
-        x = x / np.sum(np.abs(x))
+        y = y.reshape(-1,1)
+        y = y / np.sum(np.abs(y))
+        diff = l1_norm(y-x)
+        difference_in_norm_l1.append(diff)
+        x = y
+        if abs(diff)<tol:
+            print("The method stopped before k=",k)
+            break
 
-    return x,c
+    return x,c,p+1,difference_in_norm_l1
 
 def main_test():
 
