@@ -80,17 +80,19 @@ def PWM(M, x_0 ,k=1000, tol = 10**-8,real_x = None):
             y = -y
         if real_x is not None:
             diff_y = y.reshape(-1,1)-real_x.reshape(-1,1)
-            diff_x = x.reshape(-1,1)-real_x.reshape(-1,1)
             '''
-            if p == 49:
+            if p == k-1:
                 print(np.linalg.norm(diff_y, 1))
                 print(np.sum(np.abs(diff_y)))
                 print(np.sum(np.abs(diff_y.ravel())))
                 print(np.sum(np.abs(np.real(diff_y))))
-                '''
+                print(l1_norm(diff_y.reshape(-1,1)))
+                print("\n")
+            '''
             x_seq[p] = l1_norm(diff_y.reshape(-1,1))
-            ratio = x_seq[p]/l1_norm(diff_x.reshape(-1,1))
-        x = y   # adjusting x
+            if p > 0:
+                ratio = x_seq[p]/x_seq[p-1]
+        x = y.copy()   # adjusting x
 
 
     # computation of lam
@@ -155,7 +157,7 @@ def Opt_PWM(A,m,x_0,k=1000, tol = 10**-8):
         y = y / np.sum(np.abs(y))
         diff = l1_norm(y-x)
         difference_in_norm_l1.append(diff)
-        x = y
+        x = y.copy()
         if abs(diff)<tol:
             print("The method stopped before k=",k)
             break
