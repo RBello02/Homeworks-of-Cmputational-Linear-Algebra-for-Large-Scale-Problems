@@ -8,7 +8,7 @@ class Eig:
         self.A = A
         self.values,self.vectors = np.linalg.eig(self.A)
 
-        idx = np.argsort(self.values)[::-1]
+        idx = np.argsort(np.abs(self.values))[::-1]
         self.values = self.values[idx]
         self.vectors = self.vectors[:, idx]
 
