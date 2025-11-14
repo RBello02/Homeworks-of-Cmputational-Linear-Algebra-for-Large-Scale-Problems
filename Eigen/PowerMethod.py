@@ -164,6 +164,13 @@ def Opt_PWM(A,m,x_0,k=1000, tol = 10**-8):
 
     return x,c,p+1,difference_in_norm_l1
 
+def page_rank(A,m,x_0,k=1000, tol = 10**-8):
+    x,c,p,difference_in_norm_l1 = Opt_PWM(A,m,x_0,k,tol)
+    # normalize the score removing the last node 
+    new_x = x[:A.shape[0]-1].copy()
+    new_x = new_x/l1_norm(new_x)
+    return new_x,c,p, difference_in_norm_l1
+
 def main_test():
 
     print("\n")
