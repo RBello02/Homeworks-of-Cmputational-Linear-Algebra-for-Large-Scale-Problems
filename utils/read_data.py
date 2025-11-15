@@ -51,4 +51,4 @@ def read_pages(file_path):
     D_inv = diags(1 / row_sums)
     A = D_inv @ A.tocsr()
 
-    return A, id_to_url, edges
+    return A, id_to_url, edges, sink_nodes
