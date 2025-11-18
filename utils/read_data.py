@@ -36,8 +36,12 @@ def read_pages(file_path):
 
     # connect sink nodes to False_Page
     for node in sink_nodes:
-        edges.append((node, false_id))
+        pass
+        #edges.append((node, false_id))
 
+    # those connection are added for having a cul-stochastic mat
+
+    #edges.append((false_id, false_id)) # for having a cul-stochastic matrix
     n_nodes += 1  # only once
 
     # --- build sparse matrix ---
