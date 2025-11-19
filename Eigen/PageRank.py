@@ -181,20 +181,18 @@ def Opt_PWM(A,m,x_0,k=1000, tol = 10**-8, sink_nodes = None):
 
     return x,lam,c,p+1,difference_in_norm_l1
 
-def page_rank(A,m,x_0,sink_nodes, k=1000, tol = 10**-8):
+def page_rank(A,m,x_0,sink_nodes, no_backlink_nodes, k=1000, tol = 10**-8):
     x,lam,c,p,difference_in_norm_l1 = Opt_PWM(A,m,x_0,k,tol,sink_nodes=sink_nodes)
-    # normalize the score removing the last node 
 
-    '''
-    mask = np.ones(len(x), dtype=bool)
-    mask[sink_nodes] = False
-
-    result = np.empty_like(x, dtype=float)
-    result[mask] = x[mask] * m
-    result[~mask] = x[~mask] * (1 - m)
-    result = result /l1_norm(result)
-    '''
-    result = x.copy()
+    n = len(x)
+    result = np.zeros((n,1))
+    residual_mass = 1-len(no_backlink_nodes)*m/n
+    precedent_mass = 1-sum(x[no_backlink_nodes])
+    for j in range(n):
+        if j not in no_backlink_nodes:
+            result[j] = x[j]*residual_mass/precedent_mass
+        else:
+            result[j] = m/n
 
     return result,lam,c,p, difference_in_norm_l1
 
