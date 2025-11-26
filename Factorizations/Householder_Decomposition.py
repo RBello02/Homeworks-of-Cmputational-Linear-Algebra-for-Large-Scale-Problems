@@ -1,5 +1,10 @@
 import numpy as np
 
+def transform(A, tol = 1e-8):
+    # for visualization 
+    A[abs(A)<tol] = 0.0
+    return A
+
 def householder_mat(x):
     """
     Function that compute the reflection matrix of the Householder method for a given vector x.
@@ -19,8 +24,58 @@ def householder_mat(x):
     # Computation of the reflection matrix
     Px = np.eye(v.size) - 2*u*u.T
 
-    
     return Px
+
+def left_householder_mat_optimize(A,k, tol = 1e-8):
+    """
+    This function is similar to householder_mat but it returns only the product HA and the vector u, this is optimize because we don't need to save H
+    but only u and when we need it is possible to compute HA 
+
+    From the theory we know that HA = A -  u*(u^t*A)     
+
+    """
+    A = A.copy()
+    x = A[k:,k].reshape(-1,1)
+
+    if x.size == 0:
+        return A, None
+    if np.linalg.norm(x) < tol or x.size == 1:
+        return A, np.zeros_like(x)
+    
+    sigma = -np.copysign(np.linalg.norm(x), x[0,0])
+
+    u = x.copy()
+    u[0,0] += sigma
+    u = u/np.linalg.norm(u)
+
+    A[k:, :] = A[k:, :] - 2 * u @ (u.T @ A[k:, :])
+
+    return A,u
+
+def right_householder_mat_optimize(A, k, tol = 1e-8):
+    """
+    Apply Householder from the right to zero elements after the diagonal in row k.
+    Returns updated A and the Householder vector u (compact form).
+    """
+    A = A.copy()
+    x = A[k, k+1:].reshape(-1,1)
+
+    if x.size == 0 or np.linalg.norm(x) < tol:
+        return A, None
+    if x.size == 1:
+        return A, np.zeros_like(x)
+    
+    sigma = -np.copysign(np.linalg.norm(x), x[0,0])
+
+    u = x.copy()
+    u[0,0] += sigma
+    u = u / np.linalg.norm(u)
+    
+    # Apply Householder on the submatrix (columns k+1:n)
+    A[:, k+1:] = A[:, k+1:] - 2 * (A[:, k+1:] @ u) @ u.T
+    
+    return A, u
+    
 
 def Householder_Decomposition(X):
     """
@@ -61,10 +116,42 @@ def Householder_Decomposition(X):
 
     return Q, R, Qqual, QRqual
 
+
+def Householder_Bidiag_Decomposition(X):
+
+    """
+    This function is mostly used in SVD naive decompositions, The idea is to "left" apply householder decomposition to have a column with zeros under the diag 
+    and also apply "right" householder decomposition for having a The element of the row equal to zero after the diag. It will generate a bidiagonal matrix. 
+    We must consider, in this case, X also not squared.
+    """
+
+    U_left = []
+    U_right = []
+    m, n = X.shape
+
+    for k in range(0,n): #iterate over the columns
+
+        # step 1 compute the householder dec for the columns
+
+        X,u = left_householder_mat_optimize(X,k) 
+        U_left.append(u)   
+
+
+        # --- Step 2: Householder on right 
+        if k < n-1:  # not last column
+            X, u_right = right_householder_mat_optimize(X, k)
+            U_right.append(u_right)
+        else:
+            U_right.append(None)
+
+    return X, U_left, U_right
+
+
 def main_test():
 
     A = np.random.rand(4,4)
     Q, R, Qqual, QRqual = Householder_Decomposition(A)
+    print("***************** TESTS HOUSEHOLDER NAIVE *********************")
     print("*************************************")
     print("Test random 4x4 matrix")
     print("||I - Q @ Q.T|| =", Qqual)
@@ -87,6 +174,18 @@ def main_test():
     print("Test random 200x200 matrix")
     print("||I - Q @ Q.T|| =", Qqual)
     print("||Q @ R - A|| =", QRqual)
+    print("*************************************")
+
+    print("\n")
+    print("\n")
+    print("***************** TESTS HOUSEHOLDER BIDIAG *********************")
+    A = np.random.rand(12,10)
+    A,U_left, U_right = Householder_Bidiag_Decomposition(A)
+    print("*************************************")
+    print("Test random 12x10matrix")
+    print("A", transform(A))
+    print("U left", U_left)
+    print("U right", U_right)
     print("*************************************")
 
 if __name__ == "__main__":
