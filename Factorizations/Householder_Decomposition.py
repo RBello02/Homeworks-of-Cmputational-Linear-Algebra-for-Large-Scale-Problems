@@ -26,7 +26,7 @@ def householder_mat(x):
 
     return Px
 
-def left_householder_mat_optimize(A,k, tol = 1e-8):
+def left_householder_mat(A,k, tol = 1e-8):
     """
     This function is similar to householder_mat but it returns only the product HA and the vector u, this is optimize because we don't need to save H
     but only u and when we need it is possible to compute HA 
@@ -38,9 +38,9 @@ def left_householder_mat_optimize(A,k, tol = 1e-8):
     x = A[k:,k].reshape(-1,1)
 
     if x.size == 0:
-        return A, None
+        return None
     if np.linalg.norm(x) < tol or x.size == 1:
-        return A, np.zeros_like(x)
+        return np.eye(1)
     
     sigma = -np.copysign(np.linalg.norm(x), x[0,0])
 
@@ -48,11 +48,11 @@ def left_householder_mat_optimize(A,k, tol = 1e-8):
     u[0,0] += sigma
     u = u/np.linalg.norm(u)
 
-    A[k:, :] = A[k:, :] - 2 * u @ (u.T @ A[k:, :])
+    Plx  = np.eye(u.size)- 2 * u @ (u.T)
 
-    return A,u
+    return Plx
 
-def right_householder_mat_optimize(A, k, tol = 1e-8):
+def right_householder_mat(A, k, tol = 1e-8):
     """
     Apply Householder from the right to zero elements after the diagonal in row k.
     Returns updated A and the Householder vector u (compact form).
@@ -61,9 +61,9 @@ def right_householder_mat_optimize(A, k, tol = 1e-8):
     x = A[k, k+1:].reshape(-1,1)
 
     if x.size == 0 or np.linalg.norm(x) < tol:
-        return A, None
+        return None
     if x.size == 1:
-        return A, np.zeros_like(x)
+        return np.eye(1)
     
     sigma = -np.copysign(np.linalg.norm(x), x[0,0])
 
@@ -72,9 +72,9 @@ def right_householder_mat_optimize(A, k, tol = 1e-8):
     u = u / np.linalg.norm(u)
     
     # Apply Householder on the submatrix (columns k+1:n)
-    A[:, k+1:] = A[:, k+1:] - 2 * (A[:, k+1:] @ u) @ u.T
+    Prx = np.eye(u.size) - 2 * (u) @ u.T
     
-    return A, u
+    return Prx
     
 
 def Householder_Decomposition(X):
@@ -125,26 +125,38 @@ def Householder_Bidiag_Decomposition(X):
     We must consider, in this case, X also not squared.
     """
 
-    U_left = []
-    U_right = []
     m, n = X.shape
 
-    for k in range(0,n): #iterate over the columns
+    Ul = np.eye(m)
+    Ur = np.eye(n)
+
+    for k in range(min(n,m)): #iterate over the columns
 
         # step 1 compute the householder dec for the columns
 
-        X,u = left_householder_mat_optimize(X,k) 
-        U_left.append(u)   
+        HlSmall = left_householder_mat(X,k)  
+
+        if HlSmall is not None:
+            Hl = np.eye(m)
+            Hl[k:,k:] = HlSmall
+
+            X = Hl@X
+            Ul = Ul@Hl
 
 
         # --- Step 2: Householder on right 
-        if k < n-1:  # not last column
-            X, u_right = right_householder_mat_optimize(X, k)
-            U_right.append(u_right)
-        else:
-            U_right.append(None)
 
-    return X, U_left, U_right
+        HrSmall = right_householder_mat(X, k)
+
+        if HrSmall is not None:
+            Hr = np.eye(n)
+            Hr[k+1:, k+1:] = HrSmall
+
+            X = X @ Hr        
+            Ur = Ur @ Hr 
+
+    return X, Ul, Ur
+    
 
 
 def main_test():
@@ -179,14 +191,43 @@ def main_test():
     print("\n")
     print("\n")
     print("***************** TESTS HOUSEHOLDER BIDIAG *********************")
-    A = np.random.rand(12,10)
-    A,U_left, U_right = Householder_Bidiag_Decomposition(A)
+    A = np.random.rand(5,4)
+    A_n,U_left, U_right = Householder_Bidiag_Decomposition(A)
     print("*************************************")
-    print("Test random 12x10matrix")
-    print("A", transform(A))
-    print("U left", U_left)
-    print("U right", U_right)
+    print("Test random 5x4 matrix")
+    #print("A", transform(A_n))
+    #print("U left", U_left)
+    #print("U right", U_right)
+    print("norm of the difference ||A-UBV||:", np.linalg.norm(A-U_left@A_n@U_right.T))
     print("*************************************")
+    A = np.random.rand(4,5)
+    A_n,U_left, U_right = Householder_Bidiag_Decomposition(A)
+    print("*************************************")
+    print("Test random 4x5 matrix")
+    #print("A", transform(A_n))
+    #print("U left", U_left)
+    #print("U right", U_right)
+    print("norm of the difference ||A-UBV||:", np.linalg.norm(A-U_left@A_n@U_right.T))
+    print("*************************************")
+    A = np.random.rand(100,50)
+    A_n,U_left, U_right = Householder_Bidiag_Decomposition(A)
+    print("*************************************")
+    print("Test random 100x50 matrix")
+    #print("A", transform(A_n))
+    #print("U left", U_left)
+    #print("U right", U_right)
+    print("norm of the difference ||A-UBV||:", np.linalg.norm(A-U_left@A_n@U_right.T))
+    print("*************************************")
+    A = np.random.rand(100,500)
+    A_n,U_left, U_right = Householder_Bidiag_Decomposition(A)
+    print("*************************************")
+    print("Test random 100x500 matrix")
+    #print("A", transform(A_n))
+    #print("U left", U_left)
+    #print("U right", U_right)
+    print("norm of the difference ||A-UBV||:", np.linalg.norm(A-U_left@A_n@U_right.T))
+    print("*************************************")
+    print(transform(A_n))
 
 if __name__ == "__main__":
     main_test()
